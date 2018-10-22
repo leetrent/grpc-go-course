@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	"github.com/LeeTrent/grpc-go-course/greet/greetpb"
@@ -22,12 +23,13 @@ func main() {
 	client := greetpb.NewGreetServiceClient(conn)
 	fmt.Printf("[client.go][main]=>[greetpb.NewGreetServiceClient]: Created client (%f)", client)
 
-	doUnary(client)
+	//doUnary(client)
+	doServerStreaming(client)
 	fmt.Println("[client.go][main] END")
 }
 
 func doUnary(client greetpb.GreetServiceClient) {
-	fmt.Println("[client.go][doUnary] BEGIN")
+	fmt.Println("[greet][client.go][doUnary] => BEGIN")
 
 	request := &greetpb.GreetRequest{
 		Greeting: &greetpb.Greeting{
@@ -44,4 +46,32 @@ func doUnary(client greetpb.GreetServiceClient) {
 	log.Printf("[client.go][doUnary] Response from Greet RPC: %v", response.Result)
 
 	fmt.Println("[client.go][doUnary] END")
+}
+
+func doServerStreaming(client greetpb.GreetServiceClient) {
+	fmt.Println("[greet][client.go][doServerStreaming] => BEGIN")
+
+	request := &greetpb.GreetManyTimesRequest{
+		Greeting: &greetpb.Greeting{
+			FirstName: "Lee",
+			LastName:  "Ceccato",
+		},
+	}
+
+	resultStream, err := client.GreetManyTimes(context.Background(), request)
+	if err != nil {
+		log.Fatalf("\n[greet][client.go][doServerStreaming] => greetpb.GreetServiceClient.GreetManyTimes(): Error: %v", err)
+	}
+
+	for {
+		msg, err := resultStream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				log.Fatalf("\n[greet][client.go][doServerStreaming] => greetpb.GreetServiceClient.GreetManyTimes.Recv(): Error: %v", err)
+			}
+		}
+		log.Printf("%v", msg.GetResult())
+	}
 }
