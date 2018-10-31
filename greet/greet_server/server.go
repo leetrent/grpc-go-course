@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -40,18 +41,42 @@ func (*server) GreetManyTimes(req *greetpb.GreetManyTimesRequest, stream greetpb
 	return nil // no error
 }
 
+func (*server) LongGreet(stream greetpb.GreetService_LongGreetServer) error {
+
+	fmt.Printf("[greet][server.go][(*server)LongGreet()] => BEGIN ...")
+
+	result := ""
+
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				// We have finished reading the client stream
+				return stream.SendAndClose(&greetpb.LongGreetResponse{
+					Result: result,
+				})
+			} else {
+				log.Fatalf("\n[greet][server.go][(*server)LongGreet()] => stream.Recv() error: %v", err)
+			}
+		}
+
+		firstName := req.GetGreeting().GetFirstName()
+		result += "Hello " + firstName + "! "
+	}
+}
+
 func main() {
-	fmt.Println("[server.go][main] Starting server ...")
+	fmt.Println("[greet][server.go][main()] Starting server ...")
 
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
-		log.Fatalf("[server.go][main][net.Listen]: %v", err)
+		log.Fatalf("[greet][server.go][main()] => Error encountered when invoking net.Listen(): %v", err)
 	}
 
 	s := grpc.NewServer()
 	greetpb.RegisterGreetServiceServer(s, &server{})
 
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("[server.go][main][Server.Serve]: %v", err)
+		log.Fatalf("[greet][server.go][main()] => Error encountered when invoking Server.Serve(): %v", err)
 	}
 }
