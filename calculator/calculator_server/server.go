@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -46,6 +47,31 @@ func (*server) PrimeNumberDecomposition(req *calculatorpb.PrimeNumberDecompositi
 		}
 	}
 	return nil
+}
+
+func (*server) ComputeAverage(stream calculatorpb.CalculatorService_ComputeAverageServer) error {
+	fmt.Printf("[Calculator][server.go][(*server)CalculateAverage()] => BEGIN ...")
+
+	sum := int32(0)
+	count := 0
+
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				// We have finished reading the stream
+				average := float64(sum) / float64(count)
+				return stream.SendAndClose(&calculatorpb.ComputeAverageResponse{
+					Average: average,
+				})
+			} else {
+				log.Fatalf("\n[Calculator][server.go][(*server)CalculateAverage()] => stream.Recv() error: %v", err)
+			}
+		}
+		sum += req.GetNumber()
+		count++
+	}
+
 }
 
 func main() {

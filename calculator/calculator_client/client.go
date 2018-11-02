@@ -6,7 +6,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/simplesteph/grpc-go-course/calculator/calculatorpb"
+	"github.com/LeeTrent/grpc-go-course/calculator/calculatorpb"
 
 	"google.golang.org/grpc"
 )
@@ -23,7 +23,9 @@ func main() {
 	client := calculatorpb.NewCalculatorServiceClient(conn)
 
 	//doUnary(client)
-	doServerStreaming(client)
+	//doServerStreaming(client)
+	doClientStreaming(client)
+
 	fmt.Println("[Calculator][client.go][main] => END")
 }
 
@@ -70,4 +72,29 @@ func doServerStreaming(client calculatorpb.CalculatorServiceClient) {
 	}
 
 	fmt.Println("[Calculator][client.go][doServerStreaming] => END")
+}
+
+func doClientStreaming(client calculatorpb.CalculatorServiceClient) {
+	fmt.Println("[Calculator][client.go][doClientStreaming] => BEGIN")
+
+	stream, err := client.ComputeAverage(context.Background())
+	if err != nil {
+		log.Fatalf("\n[Calculator][client.go][doClientStreaming] => Error encountered when invoking client.CalculateAverage(): %v", err)
+	}
+
+	numbers := []int32{3, 5, 9, 54, 23}
+
+	for _, number := range numbers {
+		fmt.Printf("Sending number: %v\n", number)
+		stream.Send(&calculatorpb.ComputeAverageRequest{
+			Number: number,
+		})
+	}
+
+	response, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("\n[Calculator][client.go][doClientStreaming] => Error encountered when invoking stream.CloseAndRecv(): %v", err)
+	}
+
+	fmt.Printf("\n[Calculator][client.go][doClientStreaming] => CalculateAverageResponse.getAverage(): %v\n", response.GetAverage())
 }
