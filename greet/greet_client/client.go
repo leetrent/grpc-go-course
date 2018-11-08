@@ -26,7 +26,8 @@ func main() {
 
 	//doUnary(client)
 	//doServerStreaming(client)
-	doClientStreaming(client)
+	//doClientStreaming(client)
+	doBiDiStreaming(client)
 	fmt.Println("\n[greet][client.go][main()] => END")
 }
 
@@ -118,4 +119,83 @@ func doClientStreaming(client greetpb.GreetServiceClient) {
 		log.Fatalf("\n[client.go][doClientStreaming] => Error encountered when invoking stream.CloseAndRecv(): %v", err)
 	}
 	fmt.Printf("\n[greet][client.go][doClientStreaming] => LongGreetResponse %v", response)
+}
+
+func doBiDiStreaming(client greetpb.GreetServiceClient) {
+	fmt.Println("[greet][client.go][doBiDiStreaming] => BEGIN")
+
+	///////////////////////////////////////////////////////////////
+	// Create client data
+	///////////////////////////////////////////////////////////////
+	requests := []*greetpb.GreetEveryoneRequest{
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Lee",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Linda",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Casey",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Pooh Bear",
+			},
+		},
+	}
+
+	///////////////////////////////////////////////////////////////
+	// PSEUDOCODE:
+	///////////////////////////////////////////////////////////////
+	// 1. Create a stream by invoking the client
+	// 2. Send mulitple messages to client using a go routine
+	// 3. Receive mulitple messages from client using a go routine
+	// 4. Block until everything has completed
+	///////////////////////////////////////////////////////////////
+
+	waitChannel := make(chan struct{})
+
+	// 1. Create a stream by invoking the client
+	stream, err := client.GreetEveryone(context.Background())
+	if err != nil {
+		log.Fatalf("\n[greet][client.go][doBiDiStreaming] => Error encountered when invoking client.GreetEveryone(): %v", err)
+	}
+
+	// 2. Send mulitple messages to client using a go routine
+	go func() {
+		for _, req := range requests {
+			fmt.Printf("\nSending request: %v\n", req)
+			stream.Send(req)
+			time.Sleep(1000 * time.Millisecond)
+		}
+		stream.CloseSend()
+	}()
+
+	// 3. Receive mulitple messages from client using a go routine
+	go func() {
+		for {
+			response, err := stream.Recv()
+			if err != nil {
+				if err == io.EOF {
+					break
+				} else {
+					log.Fatalf("\n[greet][client.go][doBiDiStreaming] => Error encountered when invoking stream.Recv(): %v", err)
+					break
+				}
+			}
+			fmt.Printf("Received: %v:", response.GetResult())
+		}
+		close(waitChannel)
+	}()
+
+	// 4. Block until everything has completed
+	<-waitChannel
+
+	fmt.Println("[greet][client.go][doBiDiStreaming] => END")
 }
