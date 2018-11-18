@@ -1,0 +1,20 @@
+Code Download:
+Section 1, Lecture 4
+The code for this course is on GitHub: https://github.com/simplesteph/grpc-go-course
+If you need a zip archive, use this url: https://github.com/simplesteph/grpc-go-course/archive/master.zip
+
+https://github.com/simplesteph/grpc-go-course/tree/master/ssl
+
+Use the following command to install gRPC:
+$ go get -u google.golang.org/grpc
+
+Next, install the protoc plugin for Go:
+$ go get -u github.com/golang/protobuf/protoc-gen-go
+
+$ protoc greet/greetpb/greet.proto  --go_out=plugins=grpc:.
+
+$ go run greet/greet_server/server.go
+$ go run greet/greet_client/client.go
+
+$ go run calculator/calculator_server/server.go
+$ go run calculator/calculator_client/client.go
