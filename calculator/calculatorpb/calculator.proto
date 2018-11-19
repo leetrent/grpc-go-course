@@ -35,6 +35,13 @@ message FindMaximumResponse {
   int32 maximum = 1;
 }
 ////////////////////////////////////////////////////////////////////////////////
+message SquareRootRequest {
+  int32 number = 1;
+}
+message SquareRootResponse {
+  double number_root = 1;
+}
+////////////////////////////////////////////////////////////////////////////////
 service CalculatorService {
    // Unary
    rpc Sum(SumRequest) returns (SumResponse) {};
@@ -48,5 +55,11 @@ service CalculatorService {
    
    // Bi-Directional ("BiDi") Streaming
    rpc FindMaximum(stream FindMaximumRequest) returns (stream FindMaximumResponse) {};
+
+   // Unary
+   // Error Handling:
+   // This RPC will throw an exception if the number sent in SquareRootRequest
+   // is negative (INVALID_ARGUMENT)
+   rpc SquareRoot(SquareRootRequest) returns (SquareRootResponse) {};
 }
 ////////////////////////////////////////////////////////////////////////////////

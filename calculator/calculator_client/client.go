@@ -10,6 +10,8 @@ import (
 	"github.com/LeeTrent/grpc-go-course/calculator/calculatorpb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -26,7 +28,8 @@ func main() {
 	//doUnary(client)
 	//doServerStreaming(client)
 	//doClientStreaming(client)
-	doBiDiStreaming(client)
+	//doBiDiStreaming(client)
+	doErrorUnary(client)
 
 	fmt.Println("[Calculator][client.go][main] => END")
 }
@@ -143,5 +146,38 @@ func doBiDiStreaming(client calculatorpb.CalculatorServiceClient) {
 		close(waitChannel)
 	}()
 	<-waitChannel
+}
+func doErrorUnary(client calculatorpb.CalculatorServiceClient) {
 
+	fmt.Println("[Calculator][client.go][doErrorUnary] => BEGIN")
+
+	// Correct call
+	doErrorCall(client, 64)
+
+	// Error call
+	doErrorCall(client, -2)
+}
+
+func doErrorCall(client calculatorpb.CalculatorServiceClient, number int32) {
+
+	response, err := client.SquareRoot(context.Background(), &calculatorpb.SquareRootRequest{Number: number})
+
+	if err != nil {
+		respErr, ok := status.FromError(err)
+
+		if ok {
+			// Actual error from gRPC (user error)
+			fmt.Printf("\nError message from server: %v", respErr.Message())
+			fmt.Printf("\nError code from server: %v", respErr.Code())
+
+			if respErr.Code() == codes.InvalidArgument {
+				fmt.Println("We must have sent a negative number.")
+				return
+			}
+		} else {
+			log.Fatalf("\n[Calculator][client.go][doErrorUnary] => Error encountered when invoking client.SquareRoot(): %v", err)
+			return
+		}
+	}
+	fmt.Printf("\nSquare Root of %v is %v\n", number, response.GetNumberRoot())
 }
