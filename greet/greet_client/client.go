@@ -10,6 +10,8 @@ import (
 	"github.com/LeeTrent/grpc-go-course/greet/greetpb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -27,7 +29,10 @@ func main() {
 	//doUnary(client)
 	//doServerStreaming(client)
 	//doClientStreaming(client)
-	doBiDiStreaming(client)
+	//doBiDiStreaming(client)
+	doUnaryWithDeadline(client, 5*time.Second) // should complete
+	doUnaryWithDeadline(client, 1*time.Second) // should timeout
+
 	fmt.Println("\n[greet][client.go][main()] => END")
 }
 
@@ -79,7 +84,7 @@ func doServerStreaming(client greetpb.GreetServiceClient) {
 }
 
 func doClientStreaming(client greetpb.GreetServiceClient) {
-	fmt.Println("\n[greet][client.go][doClientStreaming] => BEGIN\n")
+	fmt.Println("[greet][client.go][doClientStreaming] => BEGIN")
 
 	requests := []*greetpb.LongGreetRequest{
 		&greetpb.LongGreetRequest{
@@ -198,4 +203,38 @@ func doBiDiStreaming(client greetpb.GreetServiceClient) {
 	<-waitChannel
 
 	fmt.Println("[greet][client.go][doBiDiStreaming] => END")
+}
+
+func doUnaryWithDeadline(client greetpb.GreetServiceClient, timeout time.Duration) {
+
+	fmt.Println("\n[greet][client.go][doUnaryWithDeadline] => BEGIN")
+
+	request := &greetpb.GreetWithDeadlineRequest{
+		Greeting: &greetpb.Greeting{
+			FirstName: "Lee",
+			LastName:  "Ceccato",
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	response, err := client.GreetWithDeadline(ctx, request)
+	if err != nil {
+		statusErr, ok := status.FromError(err)
+		if ok {
+			if statusErr.Code() == codes.DeadlineExceeded {
+				fmt.Println("\n[greet][client.go][doUnaryWithDeadline] => Deadline Exceeded")
+				fmt.Printf("\n[greet][client.go][doUnaryWithDeadline] => status.FromError.Code(): %v", statusErr.Code())
+			} else {
+				fmt.Printf("\n[greet][client.go][doUnaryWithDeadline] => Unexpected error when calling client.GreetWithDeadline: %v", statusErr)
+			}
+		} else {
+			log.Fatalf("[greet][client.go][doUnaryWithDeadline] => Unexpected error when calling client.GreetWithDeadline: %v", err)
+		}
+		return
+	}
+
+	log.Printf("[client.go][doUnaryWithDeadline] Response from client.GreetWithDeadline: %v", response.Result)
+	fmt.Println("\n[greet][client.go][doUnaryWithDeadline] => END")
 }
