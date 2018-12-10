@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"google.golang.org/grpc/credentials"
+
 	"github.com/LeeTrent/grpc-go-course/greet/greetpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -122,9 +124,21 @@ func main() {
 		log.Fatalf("[greet][server.go][main()] => Error encountered when invoking net.Listen(): %v", err)
 	}
 
-	s := grpc.NewServer()
-	greetpb.RegisterGreetServiceServer(s, &server{})
+	opts := []grpc.ServerOption{}
+	tls := true
+	if tls {
+		certFile := "ssl/server.crt"
+		keyFile := "ssl/server.pem"
+		creds, sslErr := credentials.NewServerTLSFromFile(certFile, keyFile)
+		if sslErr != nil {
+			log.Fatalf("[greet][server.go][main()] => Error encountered when invoking credentials.NewServerTLSFromFile(): %v", sslErr)
+			return
+		}
+		opts = append(opts, grpc.Creds(creds))
+	}
 
+	s := grpc.NewServer(opts...)
+	greetpb.RegisterGreetServiceServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("[greet][server.go][main()] => Error encountered when invoking Server.Serve(): %v", err)
 	}
