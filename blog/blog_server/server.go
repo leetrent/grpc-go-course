@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/LeeTrent/grpc-go-course/blog/blogpb"
+	"github.com/mongodb/mongo-go-driver/bson"
 	"github.com/mongodb/mongo-go-driver/bson/primitive"
 	"github.com/mongodb/mongo-go-driver/mongo"
 	"google.golang.org/grpc"
@@ -64,6 +65,46 @@ func (*server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*
 			Content:  blog.GetContent(),
 		},
 	}, nil
+}
+
+func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blogpb.ReadBlogResponse, error) {
+	fmt.Println("[blog][server][ReadBlog] => BEGIN")
+
+	blogID := req.GetBlogId()
+	oid, err := primitive.ObjectIDFromHex(blogID)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("[blog][server][ReadBlog] => primitive.ObjectIDFromHex(blogID): %v", err),
+		)
+	}
+
+	data := &blogItem{}
+	filter := bson.M{"_id": oid}
+
+	res := collection.FindOne(context.Background(), filter)
+	if err := res.Decode(data); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("[blog][server][ReadBlog] => collection.FindOne(): %v", err),
+		)
+	}
+
+	fmt.Println("[blog][server][ReadBlog] => END (returning Blog")
+
+	return &blogpb.ReadBlogResponse{
+		Blog: dataToBlogPB(data),
+	}, nil
+}
+
+func dataToBlogPB(data *blogItem) *blogpb.Blog {
+
+	return &blogpb.Blog{
+		Id:       data.ID.Hex(),
+		AuthorId: data.AuthorID,
+		Content:  data.Content,
+		Title:    data.Title,
+	}
 }
 
 func main() {
