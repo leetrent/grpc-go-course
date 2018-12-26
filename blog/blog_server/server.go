@@ -97,14 +97,52 @@ func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blog
 	}, nil
 }
 
-func dataToBlogPB(data *blogItem) *blogpb.Blog {
-
-	return &blogpb.Blog{
-		Id:       data.ID.Hex(),
-		AuthorId: data.AuthorID,
-		Content:  data.Content,
-		Title:    data.Title,
+func (*server) UpdateBlog(ctx context.Context, req *blogpb.UpdateBlogRequest) (*blogpb.UpdateBlogResponse, error) {
+	fmt.Println("[blog][server][UpdateBlog] => BEGIN")
+	blog := req.GetBlog()
+	oid, err := primitive.ObjectIDFromHex(blog.GetId())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("[blog][server][UpdateBlog] => primitive.ObjectIDFromHex(blogID): %v", err),
+		)
 	}
+	data := &blogItem{}
+	filter := bson.M{"_id": oid}
+
+	res := collection.FindOne(context.Background(), filter)
+	if err := res.Decode(data); err != nil {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("[blog][server][UpdateBlog] => collection.FindOne(): %v", err),
+		)
+	}
+
+	data.AuthorID = blog.GetAuthorId()
+	data.Content = blog.GetContent()
+	data.Title = blog.GetTitle()
+
+	_, updateErr := collection.ReplaceOne(context.Background(), filter, data)
+	if updateErr != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("[blog][server][UpdateBlog] => Cannot update object in MongoDB: %v", updateErr),
+		)
+	}
+
+	func dataToBlogPB(data *blogItem) *blogpb.Blog {
+
+		return &blogpb.Blog{
+			Id:       data.ID.Hex(),
+			AuthorId: data.AuthorID,
+			Content:  data.Content,
+			Title:    data.Title,
+		}
+	}
+
+	return &blogpb.UpdateBlogResponse{
+		Blog: dataToBlogPB(data),
+	}, nil
 }
 
 func main() {
