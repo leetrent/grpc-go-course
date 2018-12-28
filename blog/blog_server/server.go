@@ -129,20 +129,19 @@ func (*server) UpdateBlog(ctx context.Context, req *blogpb.UpdateBlogRequest) (*
 			fmt.Sprintf("[blog][server][UpdateBlog] => Cannot update object in MongoDB: %v", updateErr),
 		)
 	}
-
-	func dataToBlogPB(data *blogItem) *blogpb.Blog {
-
-		return &blogpb.Blog{
-			Id:       data.ID.Hex(),
-			AuthorId: data.AuthorID,
-			Content:  data.Content,
-			Title:    data.Title,
-		}
-	}
-
 	return &blogpb.UpdateBlogResponse{
 		Blog: dataToBlogPB(data),
 	}, nil
+}
+
+func dataToBlogPB(data *blogItem) *blogpb.Blog {
+
+	return &blogpb.Blog{
+		Id:       data.ID.Hex(),
+		AuthorId: data.AuthorID,
+		Content:  data.Content,
+		Title:    data.Title,
+	}
 }
 
 func main() {
