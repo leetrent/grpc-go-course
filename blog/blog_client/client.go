@@ -23,6 +23,9 @@ func main() {
 
 	c := blogpb.NewBlogServiceClient(cc)
 
+	////////////////////////////////////////////////////////////////////////////////
+	// CREATE BLOG
+	////////////////////////////////////////////////////////////////////////////////
 	fmt.Println("[blog][client][main] Creating the blog ...")
 	blog := &blogpb.Blog{
 		AuthorId: "Lee",
@@ -38,6 +41,9 @@ func main() {
 	blogID := cbr.GetBlog().GetId()
 	fmt.Printf("\nCreated blogId: %v", blogID)
 
+	////////////////////////////////////////////////////////////////////////////////
+	// READ BLOG
+	////////////////////////////////////////////////////////////////////////////////
 	fmt.Printf("\nNow reading the blog we just created ...")
 
 	_, readErr := c.ReadBlog(context.Background(), &blogpb.ReadBlogRequest{BlogId: "7c1fcc269e28f6b46666838f"})
@@ -53,6 +59,21 @@ func main() {
 	}
 
 	fmt.Printf("\nBlog was read: %v \n", readBlogRes)
+
+	////////////////////////////////////////////////////////////////////////////////
+	// UPDATE BLOG
+	////////////////////////////////////////////////////////////////////////////////
+	updatedBlog := &blogpb.Blog{
+		Id:       blogID,
+		AuthorId: "Changed Author",
+		Title:    "My First Blog (edited)",
+		Content:  "Content of the first blog, with some awesome additions!",
+	}
+	updateRes, updateErr := c.UpdateBlog(context.Background(), &blogpb.UpdateBlogRequest{Blog: updatedBlog})
+	if updateErr != nil {
+		fmt.Printf("Error happened while updating: %v \n", updateErr)
+	}
+	fmt.Printf("Blog was updated: %v\n", updateRes)
 
 	fmt.Println("[blog][client][main] ... END")
 }
