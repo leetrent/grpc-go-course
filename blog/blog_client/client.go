@@ -75,5 +75,15 @@ func main() {
 	}
 	fmt.Printf("Blog was updated: %v\n", updateRes)
 
+	////////////////////////////////////////////////////////////////////////////////
+	// UPDATE BLOG
+	////////////////////////////////////////////////////////////////////////////////
+	deleteRes, deleteErr := c.DeleteBlog(context.Background(), &blogpb.DeleteBlogRequest{BlogId: blogID})
+
+	if deleteErr != nil {
+		fmt.Printf("Error happened while deleting: %v \n", updateErr)
+	}
+	fmt.Printf("Blog was deleted: %v \n", deleteRes)
+
 	fmt.Println("[blog][client][main] ... END")
 }

@@ -144,6 +144,32 @@ func dataToBlogPB(data *blogItem) *blogpb.Blog {
 	}
 }
 
+func (*server) DeleteBlog(ctx context.Context, req *blogpb.DeleteBlogRequest) (*blogpb.DeleteBlogResponse, error) {
+	fmt.Println("[blog][server][DeleteBlog] => BEGIN")
+	oid, err := primitive.ObjectIDFromHex(req.GetBlogId())
+	if err != nil {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("[blog][server][DeleteBlog] => Call to primitive.ObjectIDFromHex() returned an error: %v", err),
+		)
+	}
+	filter := bson.M{"_id": oid}
+	res, err := collection.DeleteOne(context.Background(), filter)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("[blog][server][DeleteBlog] => Call to collection.DeleteOne() returned an error: %v", err),
+		)
+	}
+	if res.DeletedCount == 0 {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("blog][server][DeleteBlog] => Could not delete blog with blog_id of: %v", req.GetBlogId()),
+		)
+	}
+	return &blogpb.DeleteBlogResponse{BlogId: req.GetBlogId()}, nil
+}
+
 func main() {
 	fmt.Println("[blog][server][main][main()]: BEGIN ...")
 
