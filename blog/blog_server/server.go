@@ -170,6 +170,40 @@ func (*server) DeleteBlog(ctx context.Context, req *blogpb.DeleteBlogRequest) (*
 	return &blogpb.DeleteBlogResponse{BlogId: req.GetBlogId()}, nil
 }
 
+func (*server) ListBlog(req *blogpb.ListBlogRequest, stream blogpb.BlogService_ListBlogServer) error {
+	fmt.Println("[blog][server][ListBlog] => BEGIN")
+
+	cur, err := collection.Find(context.Background(), nil)
+	if err != nil {
+		return status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("[blog][server][ListBlog] => Error encountered when caling collection.Find(): %v", err),
+		)
+	}
+	defer cur.Close(context.Background())
+
+	for cur.Next(context.Background()) {
+		data := &blogItem{}
+		err := cur.Decode(data)
+		if err != nil {
+			return status.Errorf(
+				codes.Internal,
+				fmt.Sprintf("[blog][server][ListBlog] => Error while decoding data from MongoDB: %v", err),
+			)
+		}
+		stream.Send(&blogpb.ListBlogResponse{Blog: dataToBlogPB(data)})
+	}
+
+	if err := cur.Err(); err != nil {
+		return status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("[blog][server][ListBlog] => Unknown internal error: %v", err),
+		)
+	}
+	return nil
+
+}
+
 func main() {
 	fmt.Println("[blog][server][main][main()]: BEGIN ...")
 
