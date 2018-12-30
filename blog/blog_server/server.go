@@ -9,6 +9,7 @@ import (
 	"os/signal"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
 	"github.com/LeeTrent/grpc-go-course/blog/blogpb"
@@ -243,6 +244,11 @@ func main() {
 	opts := []grpc.ServerOption{}
 	s := grpc.NewServer(opts...)
 	blogpb.RegisterBlogServiceServer(s, &server{})
+
+	///////////////////////////////////////////////////
+	// Register reflection service on gRPC server
+	///////////////////////////////////////////////////
+	reflection.Register(s)
 
 	go func() {
 		fmt.Println("Starting blog server ...")
